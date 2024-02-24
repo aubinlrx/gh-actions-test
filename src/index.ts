@@ -2,6 +2,8 @@ import { getInput, setFailed } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 
 async function run() {
+  console.log("ici");
+
   const token = getInput("gh-token");
   const label = getInput("label");
 
