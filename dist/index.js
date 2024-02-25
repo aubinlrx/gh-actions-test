@@ -30869,24 +30869,102 @@ const github_1 = __nccwpck_require__(5438);
 async function run() {
     var _a;
     const token = (0, core_1.getInput)("gh-token");
-    const label = (0, core_1.getInput)("label");
     const octokit = (0, github_1.getOctokit)(token);
-    console.log("context", github_1.context);
-    const pullRequest = github_1.context.payload.pull_request;
     try {
-        if (!pullRequest) {
-            throw new Error("This action can only be run on pull_request events");
+        switch (github_1.context.eventName) {
+            case "pull_request":
+                addLabel(octokit);
+                assignReviewer(octokit);
+                break;
+            case "pull_request_review":
+                switch (github_1.context.payload.action) {
+                    case "submitted":
+                    case "edited":
+                    case "dismissed":
+                        assignReviewer(octokit);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case "pull_request_target":
+                switch (github_1.context.payload.action) {
+                    case "synchronize":
+                        addLabel(octokit);
+                        assignReviewer(octokit);
+                        break;
+                    case "converted_to_draft":
+                    case "ready_for_review":
+                    case "review_requested":
+                        assignReviewer(octokit);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                (0, core_1.setFailed)("This action can only be run on pull_request events");
+                return;
         }
-        await octokit.rest.issues.addLabels({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            issue_number: pullRequest.number,
-            labels: [label],
-        });
     }
     catch (error) {
         (0, core_1.setFailed)((_a = error === null || error === void 0 ? void 0 : error.message) !== null && _a !== void 0 ? _a : "Unknown error occurred");
     }
+}
+async function addLabel(octokit) {
+    const pullRequest = github_1.context.payload.pull_request;
+    if (!pullRequest) {
+        throw new Error("This action can only be run on pull_request events");
+    }
+    const files = await octokit.rest.pulls.listFiles({
+        owner: github_1.context.repo.owner,
+        repo: github_1.context.repo.repo,
+        pull_number: pullRequest.number,
+    });
+    if (files.data.some((file) => file.filename.endsWith(".md"))) {
+        // update labels of pull request
+        await octokit.rest.issues.addLabels({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo,
+            issue_number: pullRequest.number,
+            labels: ["documentation"],
+        });
+    }
+}
+async function assignReviewer(octokit) {
+    var _a;
+    const pullRequest = github_1.context.payload.pull_request;
+    if (!pullRequest) {
+        throw new Error("This action can only be run on pull_request events");
+    }
+    // list of reviewers from pull request
+    const { data: reviews } = await octokit.rest.pulls.listReviews({
+        owner: github_1.context.repo.owner,
+        repo: github_1.context.repo.repo,
+        pull_number: pullRequest.number,
+    });
+    let assignee = null;
+    const changesRequestedReview = reviews.find((review) => review.state === "CHANGES_REQUESTED");
+    if (changesRequestedReview) {
+        assignee = pullRequest.user.login;
+        return;
+    }
+    const pendingReview = reviews.find((review) => review.state === "PENDING");
+    if (pendingReview) {
+        assignee = (_a = pendingReview === null || pendingReview === void 0 ? void 0 : pendingReview.user) === null || _a === void 0 ? void 0 : _a.login;
+        return;
+    }
+    const approvedReviews = reviews.filter((review) => review.state === "APPROVED");
+    if (approvedReviews.length >= 2) {
+        assignee = null;
+    }
+    // add assignee to pull request
+    await octokit.rest.issues.update({
+        owner: github_1.context.repo.owner,
+        repo: github_1.context.repo.repo,
+        issue_number: pullRequest.number,
+        assignees: assignee == null ? [] : [assignee],
+    });
 }
 run();
 
