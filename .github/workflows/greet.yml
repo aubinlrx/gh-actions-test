@@ -5,6 +5,8 @@ on:
     types: [opened, reopened]
   pull_request_review:
     types: [submitted, edited, dismissed]
+  pull_request_target:
+    types: [synchronize, converted_to_draft, ready_for_review, review_requested, review_request_removed]
 
 jobs:
   run-my-action:
