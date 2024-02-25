@@ -2,12 +2,11 @@ import { getInput, setFailed } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
 
 async function run() {
-  console.log("ici");
-
   const token = getInput("gh-token");
   const label = getInput("label");
 
   const octokit = getOctokit(token);
+  console.log("context", context);
   const pullRequest = context.payload.pull_request;
 
   try {

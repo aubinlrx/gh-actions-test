@@ -30868,10 +30868,10 @@ const core_1 = __nccwpck_require__(2186);
 const github_1 = __nccwpck_require__(5438);
 async function run() {
     var _a;
-    console.log("ici");
     const token = (0, core_1.getInput)("gh-token");
     const label = (0, core_1.getInput)("label");
     const octokit = (0, github_1.getOctokit)(token);
+    console.log("context", github_1.context);
     const pullRequest = github_1.context.payload.pull_request;
     try {
         if (!pullRequest) {
