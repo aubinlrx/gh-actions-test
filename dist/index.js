@@ -30923,7 +30923,7 @@ async function addLabel(octokit) {
     });
     if (files.data.some((file) => file.filename.endsWith(".md"))) {
         // update labels of pull request
-        await octokit.rest.issues.addLabels({
+        await octokit.rest.issues.setLabels({
             owner: github_1.context.repo.owner,
             repo: github_1.context.repo.repo,
             issue_number: pullRequest.number,
