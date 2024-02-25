@@ -30937,6 +30937,15 @@ async function assignReviewer(octokit) {
     if (!pullRequest) {
         throw new Error("This action can only be run on pull_request events");
     }
+    if (pullRequest.draft) {
+        await octokit.rest.issues.update({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo,
+            issue_number: pullRequest.number,
+            assignees: [pullRequest.user.login],
+        });
+        return;
+    }
     // list of reviewers from pull request
     const { data: reviews } = await octokit.rest.pulls.listReviews({
         owner: github_1.context.repo.owner,
